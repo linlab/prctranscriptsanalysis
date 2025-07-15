@@ -1,7 +1,9 @@
 from pyprojroot import here
+import glob
 import pdb
 import re
 import pickle
+import os
 
 class TalkTurn:
     def __init__(self, speaker: str, content: str):
@@ -30,17 +32,20 @@ class Transcript:
         talkturns: A list of TalkTurn instances representing the conversation.
         """
         self.filepath = filepath
-        #for line in open(filepath) make the talk turns then append them to list
-        talk_turn_list = []
+        
+        #self.therapist_id = "unknown"
+        self.patient_id     = filepath.split(os.sep)[-1][0:2]
+        self.session_number = int(filepath.split(os.sep)[-1][2:6])
 
+        talk_turn_list = []
         with open(filepath, 'r', encoding = 'utf-8') as f:
             linenum = 0
             for line in f:
                 line_rm_num = remove_leading_number(line)
                 linestrip = line_rm_num.strip()
                 if linestrip == "":
-                	continue
-                	linenum += 1
+                    continue
+                    linenum += 1
                 if linestrip.startswith("T:") or linestrip.startswith("A:"):
                     speaker = "therapist"
                     talkturn_text = remove_leading_speakerID(linestrip)
@@ -52,7 +57,7 @@ class Transcript:
                     talkturn_obj = TalkTurn(speaker, talkturn_text)
                     talk_turn_list.append(talkturn_obj)
                 else:
-                    print("no speaker identified in line {0}: {1}".format(linenum, linestrip))
+                    print("no speaker identified in case {0} session {1}, line {2}: {3}".format(self.patient_id, self.session_number, linenum, linestrip))
                 linenum += 1
 
         self.talkturns = talk_turn_list
@@ -96,24 +101,21 @@ def split_bracketed_text(input_string: str):
     
     return non_bracketed_text, bracketed_text
 
-# possible to do: create function to remove parenthetical from a string? e.g. (laughs)
+# possible later to do: create function to remove parentheticals from within string? e.g. (laughs)
 
 # Example usage
 if __name__ == "__main__":
- 
-    test_file = r"C:\Users\erk\Dropbox\Eric\Sinai\research\psychotherapy_process\sentiment_analysis\rawData\session_1.txt"
+    root_dir = str(here())
+    transcript_files = glob.glob(os.sep.join([root_dir,'rawData','case_A2','A2*.txt'])) 
 
-    transcript_obj = Transcript(test_file) 
-
-    print(transcript_obj)
-
-    for turn in transcript_obj.talkturns:
-        print(turn)
-
-    pdb.set_trace()
+    list_of_transcript_objs = []
+    for f in transcript_files:
+        transcript_obj = Transcript(f)
+        list_of_transcript_objs.append(transcript_obj)
 
     # Open a file in binary write mode ('wb')
+    with open(os.sep.join([root_dir,'extractedData','transcript_python_objects.pkl']), 'wb') as file:
+        # Dump the object into the file
+        pickle.dump(list_of_transcript_objs, file)
 
-    #with open('my_object.pkl', 'wb') as file:
-    #    # Dump the object into the file
-    #    pickle.dump(my_object, file)
+#    pdb.set_trace()
